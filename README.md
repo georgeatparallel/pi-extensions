@@ -61,7 +61,7 @@ node --test tests/block-push-to-main.test.ts
 Parallel 拡張の通信テストは、pi が提供するパッケージをローカルに導入してから実行します（実際のネットワーク通信は行いません）。
 
 ```bash
-npm install --no-save --package-lock=false @earendil-works/pi-coding-agent typebox
+npm install --prefix . --no-save --package-lock=false @earendil-works/pi-coding-agent typebox
 node --test tests/parallel-search.test.ts
 ```
 
