@@ -58,6 +58,13 @@ pi -e ./brave-search-pi-work.ts
 node --test tests/block-push-to-main.test.ts
 ```
 
+Parallel 拡張の通信テストは、pi が提供するパッケージをローカルに導入してから実行します（実際のネットワーク通信は行いません）。
+
+```bash
+npm install --no-save --package-lock=false @earendil-works/pi-coding-agent typebox
+node --test tests/parallel-search.test.ts
+```
+
 ## 拡張機能一覧
 
 ### `brave-search-pi-work.ts` — Brave Search 検索ツール（pi-work プロファイル専用 / MCP ゲートウェイ版）
@@ -95,6 +102,23 @@ MCP ゲートウェイを経由せず、Brave Search API を直接呼び出す�
   - `llm_context` : Brave LLM Context API 経由で取得したページの抽出済みコンテンツ（テキスト・表・コード）を RAG/グラウンディング用途で返す。クエリから複数ソースを*読む*ときに使用。
     - `q` (string, 必須), `count` (integer, 任意, 1–50, 既定 20), `maximum_number_of_urls` (任意, 1–50, 既定 20), `maximum_number_of_tokens` (任意, 1024–32768, 既定 8192), `country`, `search_lang`, `context_threshold_mode`, `goggles`
 - **備考**: 出力は `truncateHead` でバイト/行数バジェットに切り詰められ、切り詰められた場合は全文を一時ファイルに保存したパスを結果に付与します。
+
+### `parallel-search.ts` — Parallel Search MCP（API キー不要）
+
+[Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp) で Web 検索とページの抜粋取得を行う拡張です。アカウントや API キーは不要で、匿名の無料枠では検索に Fast モードを使用します。利用制限があります。
+
+```bash
+pi -e ./parallel-search.ts
+```
+
+常用する場合は、このファイルを `~/.pi/agent/extensions/` または `.pi/extensions/` へコピー（またはシンボリックリンク）します。追加の npm パッケージの導入は不要です。`AI_ENV_PROFILE` による制限はなく、このファイルを読み込んだ場合のみ、次のツールを登録します。既存の Brave / Atlassian 拡張の設定・ツール名は変更しません。
+
+- `parallel_search`: `objective`（必須、検索の目的）と `search_queries`（必須、1 件以上の関連する検索クエリ）から、出典 URL と関連する抜粋を取得します。
+- `parallel_fetch`: `urls`（必須、HTTP/HTTPS URL を 1–20 件）から抜粋を取得します。`objective`（任意、200 文字以内）と `search_queries`（任意）で抽出内容を絞れます。全文取得は行いません。
+
+例: 「`parallel_search` で Node.js の最新の LTS リリースを公式サイトから調べ、出典 URL を付けて」。抜粋だけで足りない場合は、その URL を `parallel_fetch` で読みます。
+
+接続先は `https://search.parallel.ai/mcp` 固定で、MCP Streamable HTTP の JSON / SSE 応答に対応します。検索語・対象 URL・検索目的と、pi のセッション ID（同一会話内で再利用）・モデル ID（取得できる場合）を Parallel へ送ります。認証情報の読み取りや送信は行いません。1 回のツール実行は接続処理を含めて 60 秒でタイムアウトし、pi のキャンセルにも対応します。HTTP エラー（利用制限を含む）や MCP エラーはツールエラーとして返し、自動再試行しません。50 KiB / 2000 行を超える出力は切り詰め、全文を一時ファイルに保存したパスを付けます。
 
 ### `atlassian-mcp.ts` — Atlassian Rovo MCP クライアント（Jira / Confluence 等）
 
